@@ -1,8 +1,8 @@
 import { prisma } from '../prisma.js';
-import type { CreateSaleOrderInput, UpdateSaleOrderInput } from '@crm/shared';
+import type { CreateSaleOrderInput, UpdateSaleOrderInput, AuthUser } from '@crm/shared';
 
 export class SaleService {
-  static async getAll(filters?: { type?: string; status?: string; customerId?: string; search?: string }) {
+  static async getAll(filters?: { type?: string; status?: string; customerId?: string; search?: string; userId?: string }) {
     const where: any = {};
 
     if (filters?.type && filters.type !== 'ALL') {
@@ -15,6 +15,10 @@ export class SaleService {
 
     if (filters?.customerId) {
       where.customerId = filters.customerId;
+    }
+
+    if (filters?.userId) {
+      where.userId = filters.userId;
     }
 
     if (filters?.search) {
@@ -37,6 +41,13 @@ export class SaleService {
             company: true,
           },
         },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         items: {
           include: {
             product: true,
@@ -51,6 +62,13 @@ export class SaleService {
       where: { id },
       include: {
         customer: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         items: {
           include: {
             product: true,
@@ -60,7 +78,21 @@ export class SaleService {
     });
   }
 
-  static async create(data: CreateSaleOrderInput) {
+  static async checkOwnership(id: string, user: AuthUser) {
+    if (user.role === 'ADMIN') return;
+    const sale = await prisma.saleOrder.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+    if (!sale) {
+      throw new Error('Documento de venta no encontrado');
+    }
+    if (sale.userId !== user.id) {
+      throw new Error('No tienes permiso para acceder o modificar esta venta');
+    }
+  }
+
+  static async create(data: CreateSaleOrderInput, currentUserId?: string) {
     // Generate order number if not provided
     const count = await prisma.saleOrder.count({
       where: { type: data.type },
@@ -96,6 +128,7 @@ export class SaleService {
         type: data.type,
         status: data.status || (data.type === 'QUOTE' ? 'DRAFT' : 'SENT'),
         customerId: data.customerId,
+        userId: data.userId || currentUserId || null,
         issueDate: data.issueDate ? new Date(data.issueDate) : new Date(),
         dueDate: data.dueDate ? new Date(data.dueDate) : null,
         subtotal,
@@ -110,6 +143,13 @@ export class SaleService {
       },
       include: {
         customer: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         items: {
           include: {
             product: true,
@@ -125,12 +165,19 @@ export class SaleService {
       data: { status },
       include: {
         customer: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         items: true,
       },
     });
   }
 
-  static async convertQuoteToInvoice(quoteId: string) {
+  static async convertQuoteToInvoice(quoteId: string, currentUserId?: string) {
     const quote = await prisma.saleOrder.findUnique({
       where: { id: quoteId },
       include: { items: true },
@@ -151,13 +198,14 @@ export class SaleService {
       data: { status: 'ACCEPTED' },
     });
 
-    // Create new Invoice
+    // Create new Invoice preserving the seller
     return prisma.saleOrder.create({
       data: {
         orderNumber,
         type: 'INVOICE',
         status: 'SENT',
         customerId: quote.customerId,
+        userId: quote.userId || currentUserId || null,
         issueDate: new Date(),
         dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
         subtotal: quote.subtotal,
@@ -179,6 +227,13 @@ export class SaleService {
       },
       include: {
         customer: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         items: {
           include: { product: true },
         },

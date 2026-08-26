@@ -22,6 +22,7 @@ import {
 } from 'recharts';
 import { api } from '../api/client.js';
 import { StatCard } from '../components/common/StatCard.js';
+import { useAuth } from '../context/AuthContext.js';
 import type { DashboardMetrics, MonthlySalesData, DealsByStageData, TopCustomerData, TopProductData } from '@crm/shared';
 
 interface DashboardPageProps {
@@ -29,6 +30,7 @@ interface DashboardPageProps {
 }
 
 export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
+  const { isViewer } = useAuth();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [monthlySales, setMonthlySales] = useState<MonthlySalesData[]>([]);
@@ -88,21 +90,23 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => onNavigate('pipeline')}
-            className="px-4 py-2.5 rounded-xl bg-white text-brand-700 font-semibold text-xs sm:text-sm hover:bg-indigo-50 transition-colors shadow-sm inline-flex items-center gap-1.5"
-          >
-            Ver Pipeline Kanban
-            <ArrowUpRight className="h-4 w-4" />
-          </button>
-          <button
-            onClick={() => onNavigate('sales')}
-            className="px-4 py-2.5 rounded-xl bg-indigo-900/60 hover:bg-indigo-900 text-white font-semibold text-xs sm:text-sm transition-colors border border-white/20 inline-flex items-center gap-1.5"
-          >
-            Nueva Venta
-          </button>
-        </div>
+        {!isViewer && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => onNavigate('pipeline')}
+              className="px-4 py-2.5 rounded-xl bg-white text-brand-700 font-semibold text-xs sm:text-sm hover:bg-indigo-50 transition-colors shadow-sm inline-flex items-center gap-1.5"
+            >
+              Ver Pipeline Kanban
+              <ArrowUpRight className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onNavigate('sales')}
+              className="px-4 py-2.5 rounded-xl bg-indigo-900/60 hover:bg-indigo-900 text-white font-semibold text-xs sm:text-sm transition-colors border border-white/20 inline-flex items-center gap-1.5"
+            >
+              Nueva Venta
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI Stats Grid */}
@@ -195,12 +199,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-slate-900 text-base">Embudo de Ventas</h3>
-              <button
-                onClick={() => onNavigate('pipeline')}
-                className="text-xs text-brand-600 hover:text-brand-700 font-semibold inline-flex items-center"
-              >
-                Ver Kanban <ArrowUpRight className="h-3 w-3 ml-0.5" />
-              </button>
+              {!isViewer && (
+                <button
+                  onClick={() => onNavigate('pipeline')}
+                  className="text-xs text-brand-600 hover:text-brand-700 font-semibold inline-flex items-center"
+                >
+                  Ver Kanban <ArrowUpRight className="h-3 w-3 ml-0.5" />
+                </button>
+              )}
             </div>
             <p className="text-xs text-slate-500 mb-4">Valor total de oportunidades por etapa</p>
 
@@ -261,12 +267,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               </div>
               <h3 className="font-bold text-slate-900 text-base">Top Clientes por Facturación</h3>
             </div>
-            <button
-              onClick={() => onNavigate('customers')}
-              className="text-xs text-brand-600 hover:text-brand-700 font-semibold"
-            >
-              Ver todos
-            </button>
+            {!isViewer && (
+              <button
+                onClick={() => onNavigate('customers')}
+                className="text-xs text-brand-600 hover:text-brand-700 font-semibold"
+              >
+                Ver todos
+              </button>
+            )}
           </div>
 
           <div className="divide-y divide-slate-100">
@@ -303,12 +311,14 @@ export const DashboardPage: React.FC<DashboardPageProps> = ({ onNavigate }) => {
               </div>
               <h3 className="font-bold text-slate-900 text-base">Productos & Servicios Destacados</h3>
             </div>
-            <button
-              onClick={() => onNavigate('products')}
-              className="text-xs text-brand-600 hover:text-brand-700 font-semibold"
-            >
-              Ver catálogo
-            </button>
+            {!isViewer && (
+              <button
+                onClick={() => onNavigate('products')}
+                className="text-xs text-brand-600 hover:text-brand-700 font-semibold"
+              >
+                Ver catálogo
+              </button>
+            )}
           </div>
 
           <div className="divide-y divide-slate-100">

@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import bcrypt from 'bcryptjs';
 import { prisma } from './prisma.js';
 
 async function main() {
@@ -11,8 +12,56 @@ async function main() {
   await prisma.deal.deleteMany({});
   await prisma.product.deleteMany({});
   await prisma.customer.deleteMany({});
+  await prisma.user.deleteMany({});
 
-  // 1. Create Products & Services
+  // 1. Create Default Users
+  const adminPassword = await bcrypt.hash('admin123', 10);
+  const sellerPassword = await bcrypt.hash('vendedor123', 10);
+  const viewerPassword = await bcrypt.hash('lector123', 10);
+
+  const admin = await prisma.user.create({
+    data: {
+      name: 'Administrador General',
+      email: 'admin@crmpro.local',
+      password: adminPassword,
+      role: 'ADMIN',
+      active: true,
+    },
+  });
+
+  const seller1 = await prisma.user.create({
+    data: {
+      name: 'Lucas Vendedor',
+      email: 'vendedor@crmpro.local',
+      password: sellerPassword,
+      role: 'SELLER',
+      active: true,
+    },
+  });
+
+  const seller2 = await prisma.user.create({
+    data: {
+      name: 'Mariana Ventas',
+      email: 'vendedor2@crmpro.local',
+      password: sellerPassword,
+      role: 'SELLER',
+      active: true,
+    },
+  });
+
+  const viewer = await prisma.user.create({
+    data: {
+      name: 'Carlos Lector',
+      email: 'lector@crmpro.local',
+      password: viewerPassword,
+      role: 'VIEWER',
+      active: true,
+    },
+  });
+
+  console.log('✅ Users created (Admin, Lucas Vendedor, Mariana Ventas, Carlos Lector)');
+
+  // 2. Create Products & Services
   const p1 = await prisma.product.create({
     data: {
       code: 'SRV-DEV-01',
@@ -67,7 +116,7 @@ async function main() {
 
   console.log('✅ Products created');
 
-  // 2. Create Customers
+  // 3. Create Customers
   const c1 = await prisma.customer.create({
     data: {
       name: 'Carlos Mendoza',
@@ -126,7 +175,7 @@ async function main() {
 
   console.log('✅ Customers created');
 
-  // 3. Create Deals in Pipeline
+  // 4. Create Deals in Pipeline
   const now = new Date();
 
   await prisma.deal.create({
@@ -139,6 +188,7 @@ async function main() {
       probability: 100,
       expectedCloseDate: new Date(now.getFullYear(), now.getMonth(), 15),
       customerId: c1.id,
+      userId: seller1.id,
       notes: 'Contrato firmado con anticipo del 50%.',
     },
   });
@@ -153,6 +203,7 @@ async function main() {
       probability: 80,
       expectedCloseDate: new Date(now.getFullYear(), now.getMonth() + 1, 10),
       customerId: c2.id,
+      userId: seller2.id,
       notes: 'Revisando términos de garantía y plazo de entrega.',
     },
   });
@@ -167,6 +218,7 @@ async function main() {
       probability: 60,
       expectedCloseDate: new Date(now.getFullYear(), now.getMonth() + 1, 25),
       customerId: c3.id,
+      userId: seller1.id,
       notes: 'Propuesta enviada por email, esperando reunión de feedback.',
     },
   });
@@ -181,6 +233,7 @@ async function main() {
       probability: 30,
       expectedCloseDate: new Date(now.getFullYear(), now.getMonth() + 2, 5),
       customerId: c4.id,
+      userId: seller2.id,
       notes: 'Evaluando ampliación de cupo para nuevos empleados.',
     },
   });
@@ -195,20 +248,22 @@ async function main() {
       probability: 10,
       expectedCloseDate: new Date(now.getFullYear(), now.getMonth() + 2, 28),
       customerId: c3.id,
+      userId: seller1.id,
       notes: 'Primer contacto realizado.',
     },
   });
 
-  console.log('✅ Deals created');
+  console.log('✅ Deals created and assigned to sellers');
 
-  // 4. Create Sale Orders & Invoices
-  // Invoice 1 - Paid
+  // 5. Create Sale Orders & Invoices (Assigned to sellers)
+  // Invoice 1 - Assigned to Lucas Vendedor
   const inv1 = await prisma.saleOrder.create({
     data: {
       orderNumber: 'FAC-2026-0001',
       type: 'INVOICE',
       status: 'PAID',
       customerId: c1.id,
+      userId: seller1.id,
       issueDate: new Date(now.getFullYear(), now.getMonth() - 1, 10),
       dueDate: new Date(now.getFullYear(), now.getMonth(), 10),
       subtotal: 5000,
@@ -216,7 +271,7 @@ async function main() {
       taxAmount: 1050,
       discountAmount: 0,
       total: 6050,
-      notes: 'Pago recibido por transferencia bancaria.',
+      notes: 'Pago recibido por transferencia bancaria. Gestionado por Lucas.',
       items: {
         create: [
           {
@@ -232,13 +287,14 @@ async function main() {
     },
   });
 
-  // Invoice 2 - Paid this month
+  // Invoice 2 - Assigned to Mariana Ventas
   const inv2 = await prisma.saleOrder.create({
     data: {
       orderNumber: 'FAC-2026-0002',
       type: 'INVOICE',
       status: 'PAID',
       customerId: c4.id,
+      userId: seller2.id,
       issueDate: new Date(now.getFullYear(), now.getMonth(), 5),
       dueDate: new Date(now.getFullYear(), now.getMonth() + 1, 5),
       subtotal: 2400,
@@ -246,7 +302,7 @@ async function main() {
       taxAmount: 504,
       discountAmount: 0,
       total: 2904,
-      notes: 'Suscripción anual 2 licencias.',
+      notes: 'Suscripción anual 2 licencias. Gestionado por Mariana.',
       items: {
         create: [
           {
@@ -262,13 +318,14 @@ async function main() {
     },
   });
 
-  // Quote 1 - Sent
+  // Quote 1 - Assigned to Lucas Vendedor
   await prisma.saleOrder.create({
     data: {
       orderNumber: 'COT-2026-0001',
       type: 'QUOTE',
       status: 'SENT',
       customerId: c2.id,
+      userId: seller1.id,
       issueDate: new Date(now.getFullYear(), now.getMonth(), 12),
       dueDate: new Date(now.getFullYear(), now.getMonth(), 28),
       subtotal: 4500,
@@ -276,7 +333,7 @@ async function main() {
       taxAmount: 945,
       discountAmount: 0,
       total: 5445,
-      notes: 'Cotización válida por 15 días.',
+      notes: 'Cotización válida por 15 días. Asesor: Lucas Vendedor.',
       items: {
         create: [
           {
@@ -292,9 +349,9 @@ async function main() {
     },
   });
 
-  console.log('✅ Sales and Invoices created');
+  console.log('✅ Sales and Invoices created and assigned to sellers');
 
-  // 5. Create Activities
+  // 6. Create Activities
   await prisma.activity.create({
     data: {
       type: 'CALL',
@@ -327,7 +384,7 @@ async function main() {
     },
   });
 
-  console.log('🎉 Seed completed successfully!');
+  console.log('🎉 Seed completed successfully with default users & roles!');
 }
 
 main()

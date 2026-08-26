@@ -11,25 +11,32 @@ import {
   Printer,
   Calendar,
   Layers,
+  UserCheck,
+  User as UserIcon,
 } from 'lucide-react';
 import { api } from '../api/client.js';
 import { Badge } from '../components/common/Badge.js';
 import { Modal } from '../components/common/Modal.js';
+import { useAuth } from '../context/AuthContext.js';
 import type { SaleOrder, SaleType, Customer, Product, CreateSaleOrderItemInput } from '@crm/shared';
 
 export const SalesPage: React.FC = () => {
+  const { user, isAdmin, isSeller } = useAuth();
   const [sales, setSales] = useState<SaleOrder[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [sellers, setSellers] = useState<{ id: string; name: string; email: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [sellerFilter, setSellerFilter] = useState<string>('ALL');
 
   // New Sale Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [saleType, setSaleType] = useState<SaleType>('QUOTE');
   const [customerId, setCustomerId] = useState<string>('');
+  const [assignedUserId, setAssignedUserId] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>('');
   const [notes, setNotes] = useState<string>('Condiciones de pago: Transferencia a 30 días.');
   const [items, setItems] = useState<CreateSaleOrderItemInput[]>([
@@ -43,22 +50,37 @@ export const SalesPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [sellerFilter]);
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [salesData, customersData, productsData] = await Promise.all([
-        api.sales.getAll(),
+      const filters: any = {};
+      if (isAdmin && sellerFilter !== 'ALL') {
+        filters.userId = sellerFilter;
+      }
+
+      const promises: Promise<any>[] = [
+        api.sales.getAll(filters),
         api.customers.getAll(),
         api.products.getAll(),
-      ]);
-      setSales(salesData);
-      setCustomers(customersData);
-      setProducts(productsData);
+      ];
 
-      if (customersData.length > 0 && !customerId && customersData[0]) {
-        setCustomerId(customersData[0]!.id);
+      if (isAdmin) {
+        promises.push(api.users.getSellers());
+      }
+
+      const results = await Promise.all(promises);
+      setSales(results[0]);
+      setCustomers(results[1]);
+      setProducts(results[2]);
+
+      if (isAdmin && results[3]) {
+        setSellers(results[3]);
+      }
+
+      if (results[1].length > 0 && !customerId && results[1][0]) {
+        setCustomerId(results[1][0]!.id);
       }
     } catch (err) {
       console.error('Error loading sales data:', err);
@@ -69,6 +91,7 @@ export const SalesPage: React.FC = () => {
 
   const handleOpenCreateModal = (defaultType: SaleType = 'QUOTE') => {
     setSaleType(defaultType);
+    setAssignedUserId(user?.id || '');
     if (products.length > 0 && products[0]) {
       const first = products[0];
       setItems([
@@ -147,6 +170,7 @@ export const SalesPage: React.FC = () => {
       await api.sales.create({
         type: saleType,
         customerId,
+        userId: isAdmin ? (assignedUserId || user?.id) : undefined,
         dueDate: dueDate ? new Date(dueDate) : null,
         taxRate: 0.21,
         notes,
@@ -206,28 +230,44 @@ export const SalesPage: React.FC = () => {
     const matchesSearch =
       s.orderNumber.toLowerCase().includes(search.toLowerCase()) ||
       s.customer?.name.toLowerCase().includes(search.toLowerCase()) ||
-      (s.customer?.company && s.customer.company.toLowerCase().includes(search.toLowerCase()));
+      (s.customer?.company && s.customer.company.toLowerCase().includes(search.toLowerCase())) ||
+      (s.user?.name && s.user.name.toLowerCase().includes(search.toLowerCase()));
 
     return matchesType && matchesStatus && matchesSearch;
   });
 
   return (
     <div className="space-y-6">
+      {/* Seller scope banner if seller */}
+      {isSeller && (
+        <div className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 px-4 py-3 rounded-2xl flex items-center justify-between text-xs sm:text-sm">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>
+              <strong>Modo Vendedor:</strong> Estás visualizando exclusivamente tus cotizaciones y facturas personales.
+            </span>
+          </div>
+          <span className="font-semibold bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full text-xs hidden sm:inline">
+            {filteredSales.length} comprobantes
+          </span>
+        </div>
+      )}
+
       {/* Action and Filter Bar */}
       <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex flex-col lg:flex-row items-center justify-between gap-4">
         {/* Search */}
-        <div className="relative w-full lg:w-80">
+        <div className="relative w-full lg:w-72">
           <Search className="h-4 w-4 absolute left-3.5 top-3 text-slate-400" />
           <input
             type="text"
-            placeholder="Buscar por N° comprobante o cliente..."
+            placeholder="Buscar comprobante, cliente o vendedor..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
           />
         </div>
 
-        {/* Type & Status Filters */}
+        {/* Type, Status & Seller Filters */}
         <div className="flex items-center gap-2 overflow-x-auto w-full lg:w-auto">
           {/* Type tabs */}
           <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
@@ -260,6 +300,22 @@ export const SalesPage: React.FC = () => {
             <option value="ACCEPTED">Aceptada</option>
             <option value="REJECTED">Rechazada</option>
           </select>
+
+          {/* Seller Filter (Only for Admin) */}
+          {isAdmin && sellers.length > 0 && (
+            <select
+              value={sellerFilter}
+              onChange={(e) => setSellerFilter(e.target.value)}
+              className="bg-indigo-50/50 border border-indigo-200 text-xs sm:text-sm rounded-xl px-3 py-2 text-indigo-900 font-medium focus:outline-none"
+            >
+              <option value="ALL">Todos los vendedores</option>
+              {sellers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  Vendedor: {s.name}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
         {/* Action Buttons */}
@@ -289,8 +345,8 @@ export const SalesPage: React.FC = () => {
               <tr className="bg-slate-50/80 border-b border-slate-100 text-slate-500 text-[11px] font-bold uppercase tracking-wider">
                 <th className="py-3.5 px-6">Documento</th>
                 <th className="py-3.5 px-6">Cliente</th>
+                {isAdmin && <th className="py-3.5 px-6">Vendedor Asignado</th>}
                 <th className="py-3.5 px-6">Fecha Emisión / Venc.</th>
-                <th className="py-3.5 px-6">Ítems</th>
                 <th className="py-3.5 px-6">Total</th>
                 <th className="py-3.5 px-6">Estado</th>
                 <th className="py-3.5 px-6 text-right">Acciones</th>
@@ -299,8 +355,8 @@ export const SalesPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="py-12 text-center text-slate-400">
-                    No se encontraron cotizaciones ni facturas.
+                  <td colSpan={isAdmin ? 7 : 6} className="py-12 text-center text-slate-400">
+                    No se encontraron cotizaciones ni facturas registradas.
                   </td>
                 </tr>
               ) : (
@@ -341,6 +397,22 @@ export const SalesPage: React.FC = () => {
                       <p className="text-xs text-slate-400">{sale.customer?.company || 'Particular'}</p>
                     </td>
 
+                    {/* Seller (Only visible to Admin) */}
+                    {isAdmin && (
+                      <td className="py-4 px-6">
+                        <div className="flex items-center gap-1.5">
+                          <div className="h-6 w-6 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-bold text-[10px]">
+                            {sale.user?.name ? sale.user.name.slice(0, 2).toUpperCase() : 'NA'}
+                          </div>
+                          <div>
+                            <span className="text-xs font-semibold text-slate-800">
+                              {sale.user?.name || 'Sin Asignar'}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+                    )}
+
                     {/* Dates */}
                     <td className="py-4 px-6">
                       <p className="text-xs text-slate-700">
@@ -351,13 +423,6 @@ export const SalesPage: React.FC = () => {
                           Vence: {new Date(sale.dueDate).toLocaleDateString()}
                         </p>
                       )}
-                    </td>
-
-                    {/* Items count */}
-                    <td className="py-4 px-6">
-                      <span className="text-xs text-slate-600 font-medium">
-                        {sale.items?.length || 0} línea(s)
-                      </span>
                     </td>
 
                     {/* Total */}
@@ -468,18 +533,54 @@ export const SalesPage: React.FC = () => {
               </select>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                Fecha de Vencimiento
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-              />
-            </div>
+            {isAdmin ? (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  Vendedor Responsable
+                </label>
+                <select
+                  value={assignedUserId}
+                  onChange={(e) => setAssignedUserId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-indigo-200 bg-indigo-50/30 text-sm font-semibold text-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value={user?.id || ''}>Yo ({user?.name})</option>
+                  {sellers.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name} ({s.email})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  Fecha de Vencimiento
+                </label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+            )}
           </div>
+
+          {isAdmin && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  Fecha de Vencimiento
+                </label>
+                <input
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                />
+              </div>
+            </div>
+          )}
 
           {/* Line Items Table Builder */}
           <div>
@@ -665,6 +766,11 @@ export const SalesPage: React.FC = () => {
                 <p className="text-xs text-slate-500">
                   Emisión: {new Date(viewingSale.issueDate).toLocaleDateString()}
                 </p>
+                {viewingSale.user && (
+                  <p className="text-xs text-slate-600 mt-1 font-medium">
+                    Asesor: {viewingSale.user.name}
+                  </p>
+                )}
               </div>
             </div>
 
