@@ -1,0 +1,18 @@
+{
+  "name": "@crm/shared",
+  "version": "1.0.0",
+  "description": "Tipos y validaciones compartidas para el CRM",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.2"
+  }
+}

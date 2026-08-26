@@ -1,0 +1,41 @@
+{
+  "name": "crm-system",
+  "version": "1.0.0",
+  "description": "Sistema integral de gestión de clientes y ventas (CRM)",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:server": "npm run dev --workspace=@crm/server",
+    "dev:client": "npm run dev --workspace=@crm/client",
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace=@crm/server",
+    "db:push": "npm run db:push --workspace=@crm/server",
+    "db:seed": "npm run db:seed --workspace=@crm/server",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:build": "docker compose build",
+    "docker:seed": "docker compose exec server node packages/server/dist/seed.js",
+    "docker:db:up": "docker compose up -d postgres",
+    "docker:db:down": "docker compose down",
+    "docker:db:logs": "docker compose logs -f postgres"
+  },
+  "keywords": [
+    "crm",
+    "sales",
+    "typescript",
+    "react",
+    "express",
+    "prisma"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.8.2"
+  }
+}
