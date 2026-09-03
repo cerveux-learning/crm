@@ -126,7 +126,7 @@ export const LoginPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => handleQuickLogin('admin@crmpro.local', 'admin123')}
-                className="flex items-center justify-between p-2.5 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 rounded-xl text-left transition-colors group"
+                className="flex items-center justify-between p-3 bg-slate-800/50 hover:bg-slate-800 border border-slate-700/50 rounded-xl text-left transition-colors group active:scale-[0.98]"
               >
                 <div className="flex items-center gap-2.5">
                   <div className="p-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 group-hover:bg-indigo-500 group-hover:text-white transition-colors">

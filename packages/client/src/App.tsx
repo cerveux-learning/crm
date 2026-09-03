@@ -14,6 +14,7 @@ function MainLayout() {
   const { user, loading, isAdmin, isViewer } = useAuth();
   const [activeTab, setActiveTab] = useState<NavigationTab>('dashboard');
   const [refreshKey, setRefreshKey] = useState(0);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   // If viewer logs in or changes, ensure tab is dashboard
   useEffect(() => {
@@ -53,7 +54,7 @@ function MainLayout() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
         <div className="text-center">
           <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-brand-500 border-r-transparent"></div>
           <p className="mt-4 text-sm text-slate-400 font-medium">Iniciando sistema CRM...</p>
@@ -67,9 +68,17 @@ function MainLayout() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
-      {/* Sidebar Navigation */}
-      <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className="flex min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
+      {/* Sidebar Navigation (Desktop static + Mobile Drawer) */}
+      <Sidebar
+        activeTab={activeTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          setIsMobileNavOpen(false);
+        }}
+        isMobileOpen={isMobileNavOpen}
+        onMobileClose={() => setIsMobileNavOpen(false)}
+      />
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col min-w-0">
@@ -77,9 +86,10 @@ function MainLayout() {
           activeTab={activeTab}
           onQuickAction={handleQuickAction}
           onRefresh={handleRefresh}
+          onOpenMobileNav={() => setIsMobileNavOpen(true)}
         />
 
-        <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-3 sm:p-6 md:p-8 max-w-7xl w-full mx-auto">
           {activeTab === 'dashboard' && (
             <DashboardPage key={refreshKey} onNavigate={(tab) => setActiveTab(tab)} />
           )}

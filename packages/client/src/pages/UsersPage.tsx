@@ -210,8 +210,84 @@ export const UsersPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Users List: Mobile Cards + Desktop Table */}
+      {/* Mobile Card List (< md) */}
+      <div className="block md:hidden space-y-3">
+        {loading ? (
+          <div className="py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 p-6">
+            Cargando lista de usuarios...
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 p-6">
+            No se encontraron usuarios registrados.
+          </div>
+        ) : (
+          filteredUsers.map((u) => (
+            <div
+              key={u.id}
+              className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3"
+            >
+              {/* Header: Avatar + Name + Status */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0">
+                    {u.name.slice(0, 2)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-slate-900 text-sm truncate">{u.name}</p>
+                    <p className="text-xs text-slate-400 font-mono truncate">{u.email}</p>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  {u.active ? (
+                    <span className="inline-flex items-center gap-1 text-emerald-600 text-xs font-semibold">
+                      <CheckCircle className="h-3.5 w-3.5" /> Activo
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-slate-400 text-xs font-semibold">
+                      <XCircle className="h-3.5 w-3.5" /> Inactivo
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Role & Stats */}
+              <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 text-xs">
+                <div>{renderRoleBadge(u.role)}</div>
+                <span className="text-slate-500 text-[11px]">
+                  <strong>{u._count?.sales || 0}</strong> ventas · <strong>{u._count?.deals || 0}</strong> tratos
+                </span>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                <span className="text-[11px] text-slate-400">
+                  Reg: {new Date(u.createdAt).toLocaleDateString()}
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => handleOpenEdit(u)}
+                    className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-slate-700 bg-slate-100 hover:bg-slate-200 transition-colors"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                    Editar
+                  </button>
+                  <button
+                    onClick={() => handleDeleteUser(u.id, u.name)}
+                    className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
+                    title="Eliminar o Desactivar"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table (>= md) */}
+      <div className="hidden md:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>

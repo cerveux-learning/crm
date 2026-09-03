@@ -58,7 +58,7 @@ export class DealService {
       data: {
         title: data.title,
         value: data.value,
-        currency: data.currency ?? 'USD',
+        currency: data.currency ?? 'ARS',
         stage: data.stage ?? 'LEAD',
         priority: data.priority ?? 'MEDIUM',
         probability: data.probability ?? 20,

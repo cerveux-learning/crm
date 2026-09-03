@@ -42,7 +42,7 @@ model Deal {
   id                String     @id @default(uuid())
   title             String
   value             Float      @default(0)
-  currency          String     @default("USD")
+  currency          String     @default("ARS")
   stage             String     @default("LEAD") // LEAD, QUALIFIED, PROPOSAL, NEGOTIATION, WON, LOST
   priority          String     @default("MEDIUM") // LOW, MEDIUM, HIGH
   probability       Int        @default(20) // 0 - 100

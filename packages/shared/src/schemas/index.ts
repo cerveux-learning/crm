@@ -51,7 +51,7 @@ export const UpdateCustomerSchema = CreateCustomerSchema.partial();
 export const CreateDealSchema = z.object({
   title: z.string().min(2, 'El título es requerido'),
   value: z.number().min(0, 'El valor debe ser positivo o 0'),
-  currency: z.string().default('USD'),
+  currency: z.string().default('ARS'),
   stage: DealStageEnum.default('LEAD'),
   priority: DealPriorityEnum.default('MEDIUM'),
   probability: z.number().min(0).max(100).default(20),

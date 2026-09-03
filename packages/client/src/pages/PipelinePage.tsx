@@ -36,7 +36,7 @@ export const PipelinePage: React.FC = () => {
   const [form, setForm] = useState<CreateDealInput>({
     title: '',
     value: 1000,
-    currency: 'USD',
+    currency: 'ARS',
     stage: 'LEAD',
     priority: 'MEDIUM',
     probability: 20,
@@ -111,7 +111,7 @@ export const PipelinePage: React.FC = () => {
       setForm({
         title: '',
         value: 1000,
-        currency: 'USD',
+        currency: 'ARS',
         stage: 'LEAD',
         priority: 'MEDIUM',
         probability: 20,
@@ -127,7 +127,7 @@ export const PipelinePage: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(amount);
   };
 
   const filteredDeals = deals.filter(deal => {
@@ -149,15 +149,15 @@ export const PipelinePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Action and Filter Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-        <div className="flex items-center gap-3 w-full sm:w-auto flex-1 max-w-md">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 sm:p-4 rounded-2xl border border-slate-100 shadow-xs">
+        <div className="flex items-center gap-3 w-full sm:w-auto flex-1 sm:max-w-md">
           <div className="relative w-full">
             <Search className="h-4 w-4 absolute left-3.5 top-3 text-slate-400" />
             <input
               type="text"
-              placeholder="Buscar por oportunidad, cliente o empresa..."
+              placeholder="Buscar por oportunidad, cliente..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
@@ -165,34 +165,35 @@ export const PipelinePage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+        <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
           <div className="flex items-center gap-2">
-            <Filter className="h-4 w-4 text-slate-400" />
+            <Filter className="h-4 w-4 text-slate-400 shrink-0" />
             <select
               value={priorityFilter}
               onChange={(e) => setPriorityFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-3 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              className="bg-slate-50 border border-slate-200 text-xs sm:text-sm rounded-xl px-2.5 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-500/20"
             >
               <option value="ALL">Todas las prioridades</option>
-              <option value="HIGH">Prioridad Alta</option>
-              <option value="MEDIUM">Prioridad Media</option>
-              <option value="LOW">Prioridad Baja</option>
+              <option value="HIGH">Alta</option>
+              <option value="MEDIUM">Media</option>
+              <option value="LOW">Baja</option>
             </select>
           </div>
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs sm:text-sm px-4 py-2 rounded-xl transition-colors shadow-sm"
+            className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs sm:text-sm px-3 sm:px-4 py-2 rounded-xl transition-colors shadow-sm whitespace-nowrap"
           >
             <Plus className="h-4 w-4" />
-            Nueva Oportunidad
+            <span className="hidden sm:inline">Nueva Oportunidad</span>
+            <span className="sm:hidden">Nueva</span>
           </button>
         </div>
       </div>
 
       {/* Kanban Board Container */}
-      <div className="overflow-x-auto pb-4">
-        <div className="flex gap-4 min-w-[1280px]">
+      <div className="overflow-x-auto pb-4 -mx-3 sm:mx-0 px-3 sm:px-0">
+        <div className="flex gap-3 sm:gap-4 min-w-[900px] sm:min-w-[1100px]">
           {STAGES.map((stage) => {
             const stageDeals = filteredDeals.filter(d => d.stage === stage.id);
             const totalStageValue = stageDeals.reduce((sum, d) => sum + d.value, 0);
@@ -359,7 +360,7 @@ export const PipelinePage: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                Valor Estimado (USD) *
+                Valor Estimado ($) *
               </label>
               <input
                 type="number"

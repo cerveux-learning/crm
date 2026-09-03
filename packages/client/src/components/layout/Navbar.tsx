@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, RefreshCw, KeyRound, LogOut, ShieldCheck, UserCheck, Eye, ChevronDown } from 'lucide-react';
+import { Plus, RefreshCw, KeyRound, LogOut, ShieldCheck, UserCheck, Eye, ChevronDown, Menu } from 'lucide-react';
 import type { NavigationTab } from './Sidebar.js';
 import { useAuth } from '../../context/AuthContext.js';
 import { ChangePasswordModal } from '../common/ChangePasswordModal.js';
@@ -9,6 +9,7 @@ interface NavbarProps {
   onQuickAction?: (type: 'deal' | 'customer' | 'sale' | 'product') => void;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  onOpenMobileNav?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -16,6 +17,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onQuickAction,
   onRefresh,
   isRefreshing = false,
+  onOpenMobileNav,
 }) => {
   const { user, logout, isAdmin, isViewer, isSeller } = useAuth();
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
@@ -75,13 +77,28 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="h-16 bg-white border-b border-slate-100 px-6 sm:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
-        <div>
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900 tracking-tight">{current.title}</h1>
-          <p className="text-xs text-slate-500 hidden sm:block">{current.subtitle}</p>
+      <header className="h-16 bg-white border-b border-slate-100 px-3 sm:px-6 md:px-8 flex items-center justify-between sticky top-0 z-30 shadow-xs">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          {/* Hamburger button for mobile */}
+          {onOpenMobileNav && (
+            <button
+              onClick={onOpenMobileNav}
+              className="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors shrink-0"
+              title="Abrir menú de navegación"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
+
+          <div className="min-w-0">
+            <h1 className="text-base sm:text-xl font-bold text-slate-900 tracking-tight truncate">
+              {current.title}
+            </h1>
+            <p className="text-xs text-slate-500 hidden lg:block truncate">{current.subtitle}</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           {onRefresh && (
             <button
               onClick={onRefresh}
@@ -94,11 +111,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Quick Actions (only for non-viewers) */}
           {!isViewer && onQuickAction && (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 sm:gap-2">
               {activeTab === 'pipeline' && (
                 <button
                   onClick={() => onQuickAction('deal')}
-                  className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-sm transition-colors"
+                  className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-2.5 sm:px-3.5 py-2 rounded-xl shadow-sm transition-colors"
+                  title="Nueva Oportunidad"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Nueva Oportunidad</span>
@@ -107,7 +125,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               {activeTab === 'customers' && (
                 <button
                   onClick={() => onQuickAction('customer')}
-                  className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-sm transition-colors"
+                  className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-2.5 sm:px-3.5 py-2 rounded-xl shadow-sm transition-colors"
+                  title="Nuevo Cliente"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Nuevo Cliente</span>
@@ -116,7 +135,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               {activeTab === 'products' && (
                 <button
                   onClick={() => onQuickAction('product')}
-                  className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-sm transition-colors"
+                  className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-2.5 sm:px-3.5 py-2 rounded-xl shadow-sm transition-colors"
+                  title="Nuevo Producto"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Nuevo Producto</span>
@@ -125,7 +145,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               {activeTab === 'sales' && (
                 <button
                   onClick={() => onQuickAction('sale')}
-                  className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3.5 py-2 rounded-xl shadow-sm transition-colors"
+                  className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-2.5 sm:px-3.5 py-2 rounded-xl shadow-sm transition-colors"
+                  title="Nueva Cotización / Factura"
                 >
                   <Plus className="h-4 w-4" />
                   <span className="hidden sm:inline">Nueva Cotización / Factura</span>
@@ -138,13 +159,13 @@ export const Navbar: React.FC<NavbarProps> = ({
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2.5 p-1.5 pl-2 rounded-xl hover:bg-slate-100 transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2.5 p-1 sm:p-1.5 sm:pl-2 rounded-xl hover:bg-slate-100 transition-colors"
             >
-              <div className="h-8 w-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase">
+              <div className="h-8 w-8 rounded-full bg-slate-800 text-white flex items-center justify-center font-bold text-xs uppercase shrink-0">
                 {user?.name?.slice(0, 2) || 'US'}
               </div>
               <div className="text-left hidden md:block">
-                <p className="text-xs font-bold text-slate-800 leading-tight">{user?.name}</p>
+                <p className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[120px]">{user?.name}</p>
                 <div className="mt-0.5">{getRoleBadge()}</div>
               </div>
               <ChevronDown className="h-3.5 w-3.5 text-slate-400" />

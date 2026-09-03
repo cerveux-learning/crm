@@ -118,7 +118,7 @@ export const ProductsPage: React.FC = () => {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+    return new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS' }).format(amount);
   };
 
   const filteredProducts = products.filter(p => {
@@ -345,7 +345,7 @@ export const ProductsPage: React.FC = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                Precio Unitario (USD) *
+                Precio Unitario ($) *
               </label>
               <input
                 type="number"
@@ -360,7 +360,7 @@ export const ProductsPage: React.FC = () => {
 
             <div>
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                Costo Unitario (USD)
+                Costo Unitario ($)
               </label>
               <input
                 type="number"

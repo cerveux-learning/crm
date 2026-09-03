@@ -182,7 +182,7 @@ async function main() {
     data: {
       title: 'Implementación Cloud CRM & DevOps',
       value: 7400,
-      currency: 'USD',
+      currency: 'ARS',
       stage: 'WON',
       priority: 'HIGH',
       probability: 100,
@@ -197,7 +197,7 @@ async function main() {
     data: {
       title: 'Equipamiento POS + Sistema de Cobro',
       value: 4500,
-      currency: 'USD',
+      currency: 'ARS',
       stage: 'NEGOTIATION',
       priority: 'HIGH',
       probability: 80,
@@ -212,7 +212,7 @@ async function main() {
     data: {
       title: 'Consultoría y Automatización de Procesos',
       value: 3600,
-      currency: 'USD',
+      currency: 'ARS',
       stage: 'PROPOSAL',
       priority: 'MEDIUM',
       probability: 60,
@@ -227,7 +227,7 @@ async function main() {
     data: {
       title: 'Renovación Licencias CRM Pro 2026',
       value: 2400,
-      currency: 'USD',
+      currency: 'ARS',
       stage: 'QUALIFIED',
       priority: 'MEDIUM',
       probability: 30,
@@ -242,7 +242,7 @@ async function main() {
     data: {
       title: 'Integración Pasarela de Pagos',
       value: 1900,
-      currency: 'USD',
+      currency: 'ARS',
       stage: 'LEAD',
       priority: 'LOW',
       probability: 10,
