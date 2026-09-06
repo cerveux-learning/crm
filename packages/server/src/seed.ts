@@ -7,6 +7,7 @@ async function main() {
 
   // Clear existing data
   await prisma.activity.deleteMany({});
+  await prisma.stockMovement.deleteMany({});
   await prisma.saleOrderItem.deleteMany({});
   await prisma.saleOrder.deleteMany({});
   await prisma.deal.deleteMany({});
@@ -115,6 +116,26 @@ async function main() {
   });
 
   console.log('✅ Products created');
+
+  // Initial stock movements for products
+  const productsToSeed = [
+    { p: p1, qty: 101, notes: 'Lote inicial de servicios' },
+    { p: p2, qty: 502, notes: 'Carga inicial de licencias anuales' },
+    { p: p3, qty: 50, notes: 'Capacidad inicial de auditorías' },
+    { p: p4, qty: 45, notes: 'Recepción lote inicial de terminales POS' },
+  ];
+
+  for (const item of productsToSeed) {
+    await prisma.stockMovement.create({
+      data: {
+        productId: item.p.id,
+        type: 'IN',
+        quantity: item.qty,
+        notes: item.notes,
+        userId: admin.id,
+      },
+    });
+  }
 
   // 3. Create Customers
   const c1 = await prisma.customer.create({
@@ -346,6 +367,31 @@ async function main() {
           },
         ],
       },
+    },
+  });
+
+  // Outflow stock movements for paid invoices
+  await prisma.stockMovement.create({
+    data: {
+      productId: p1.id,
+      type: 'OUT',
+      quantity: 2,
+      notes: 'Salida automática por factura FAC-2026-0001',
+      saleOrderId: inv1.id,
+      userId: seller1.id,
+      createdAt: inv1.issueDate,
+    },
+  });
+
+  await prisma.stockMovement.create({
+    data: {
+      productId: p2.id,
+      type: 'OUT',
+      quantity: 2,
+      notes: 'Salida automática por factura FAC-2026-0002',
+      saleOrderId: inv2.id,
+      userId: seller2.id,
+      createdAt: inv2.issueDate,
     },
   });
 

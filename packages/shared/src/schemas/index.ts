@@ -5,6 +5,7 @@ export const CustomerStatusEnum = z.enum(['LEAD', 'PROSPECT', 'CUSTOMER', 'INACT
 export const DealStageEnum = z.enum(['LEAD', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST']);
 export const DealPriorityEnum = z.enum(['LOW', 'MEDIUM', 'HIGH']);
 export const ProductCategoryEnum = z.enum(['PRODUCT', 'SERVICE', 'SUBSCRIPTION', 'OTHER']);
+export const StockMovementTypeEnum = z.enum(['IN', 'OUT', 'ADJUSTMENT']);
 export const SaleStatusEnum = z.enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'PAID', 'CANCELLED']);
 export const SaleTypeEnum = z.enum(['QUOTE', 'INVOICE']);
 export const ActivityTypeEnum = z.enum(['CALL', 'MEETING', 'EMAIL', 'NOTE', 'TASK']);
@@ -79,6 +80,12 @@ export const CreateProductSchema = z.object({
 });
 
 export const UpdateProductSchema = CreateProductSchema.partial();
+
+export const CreateStockEntrySchema = z.object({
+  productId: z.string().min(1, 'El ID de producto es requerido'),
+  quantity: z.number().int('La cantidad debe ser un número entero').positive('La cantidad a ingresar debe ser mayor a 0'),
+  notes: z.string().optional().nullable(),
+});
 
 export const CreateSaleOrderItemSchema = z.object({
   productId: z.string().optional().nullable(),

@@ -29,25 +29,44 @@ export class ProductService {
     });
   }
 
-  static async create(data: CreateProductInput) {
-    return prisma.product.create({
-      data: {
-        code: data.code,
-        name: data.name,
-        description: data.description,
-        category: data.category ?? 'PRODUCT',
-        unitPrice: data.unitPrice,
-        cost: data.cost,
-        stock: data.stock ?? 0,
-        active: data.active ?? true,
-      },
+  static async create(data: CreateProductInput, userId?: string) {
+    const initialStock = data.stock ?? 0;
+
+    return prisma.$transaction(async (tx) => {
+      const product = await tx.product.create({
+        data: {
+          code: data.code,
+          name: data.name,
+          description: data.description,
+          category: data.category ?? 'PRODUCT',
+          unitPrice: data.unitPrice,
+          cost: data.cost,
+          stock: initialStock,
+          active: data.active ?? true,
+        },
+      });
+
+      if (initialStock > 0) {
+        await tx.stockMovement.create({
+          data: {
+            productId: product.id,
+            type: 'IN',
+            quantity: initialStock,
+            notes: 'Stock inicial al dar de alta el producto',
+            userId: userId || null,
+          },
+        });
+      }
+
+      return product;
     });
   }
 
   static async update(id: string, data: UpdateProductInput) {
+    const { stock, ...updateData } = data;
     return prisma.product.update({
       where: { id },
-      data,
+      data: updateData,
     });
   }
 

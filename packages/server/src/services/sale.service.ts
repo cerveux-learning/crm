@@ -1,4 +1,5 @@
 import { prisma } from '../prisma.js';
+import { StockService } from './stock.service.js';
 import type { CreateSaleOrderInput, UpdateSaleOrderInput, AuthUser } from '@crm/shared';
 
 export class SaleService {
@@ -122,40 +123,54 @@ export class SaleService {
     const taxAmount = (subtotal - discountAmount) * taxRate;
     const total = subtotal - discountAmount + taxAmount;
 
-    return prisma.saleOrder.create({
-      data: {
-        orderNumber,
-        type: data.type,
-        status: data.status || (data.type === 'QUOTE' ? 'DRAFT' : 'SENT'),
-        customerId: data.customerId,
-        userId: data.userId || currentUserId || null,
-        issueDate: data.issueDate ? new Date(data.issueDate) : new Date(),
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        subtotal,
-        taxRate,
-        taxAmount,
-        discountAmount,
-        total,
-        notes: data.notes,
-        items: {
-          create: calculatedItems,
-        },
-      },
-      include: {
-        customer: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+    return prisma.$transaction(async (tx) => {
+      const saleOrder = await tx.saleOrder.create({
+        data: {
+          orderNumber,
+          type: data.type,
+          status: data.status || (data.type === 'QUOTE' ? 'DRAFT' : 'SENT'),
+          customerId: data.customerId,
+          userId: data.userId || currentUserId || null,
+          issueDate: data.issueDate ? new Date(data.issueDate) : new Date(),
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          subtotal,
+          taxRate,
+          taxAmount,
+          discountAmount,
+          total,
+          notes: data.notes,
+          items: {
+            create: calculatedItems,
           },
         },
-        items: {
-          include: {
-            product: true,
+        include: {
+          customer: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          items: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
+      });
+
+      // If it's an INVOICE, record outflow of stock associated with the sale
+      if (data.type === 'INVOICE') {
+        await StockService.recordSaleOutflows(
+          saleOrder.id,
+          calculatedItems,
+          saleOrder.userId || currentUserId,
+          tx
+        );
+      }
+
+      return saleOrder;
     });
   }
 
@@ -192,52 +207,64 @@ export class SaleService {
     const year = new Date().getFullYear();
     const orderNumber = `FAC-${year}-${String(invoiceCount + 1).padStart(4, '0')}`;
 
-    // Update quote status to ACCEPTED
-    await prisma.saleOrder.update({
-      where: { id: quoteId },
-      data: { status: 'ACCEPTED' },
-    });
+    return prisma.$transaction(async (tx) => {
+      // Update quote status to ACCEPTED
+      await tx.saleOrder.update({
+        where: { id: quoteId },
+        data: { status: 'ACCEPTED' },
+      });
 
-    // Create new Invoice preserving the seller
-    return prisma.saleOrder.create({
-      data: {
-        orderNumber,
-        type: 'INVOICE',
-        status: 'SENT',
-        customerId: quote.customerId,
-        userId: quote.userId || currentUserId || null,
-        issueDate: new Date(),
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        subtotal: quote.subtotal,
-        taxRate: quote.taxRate,
-        taxAmount: quote.taxAmount,
-        discountAmount: quote.discountAmount,
-        total: quote.total,
-        notes: `Factura generada a partir de cotización ${quote.orderNumber}. ${quote.notes || ''}`,
-        items: {
-          create: quote.items.map(item => ({
-            productId: item.productId,
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-            total: item.total,
-          })),
-        },
-      },
-      include: {
-        customer: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+      // Create new Invoice preserving the seller
+      const invoice = await tx.saleOrder.create({
+        data: {
+          orderNumber,
+          type: 'INVOICE',
+          status: 'SENT',
+          customerId: quote.customerId,
+          userId: quote.userId || currentUserId || null,
+          issueDate: new Date(),
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          subtotal: quote.subtotal,
+          taxRate: quote.taxRate,
+          taxAmount: quote.taxAmount,
+          discountAmount: quote.discountAmount,
+          total: quote.total,
+          notes: `Factura generada a partir de cotización ${quote.orderNumber}. ${quote.notes || ''}`,
+          items: {
+            create: quote.items.map(item => ({
+              productId: item.productId,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              discount: item.discount,
+              total: item.total,
+            })),
           },
         },
-        items: {
-          include: { product: true },
+        include: {
+          customer: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          items: {
+            include: { product: true },
+          },
         },
-      },
+      });
+
+      // Record stock outflows for products in this invoice
+      await StockService.recordSaleOutflows(
+        invoice.id,
+        quote.items,
+        invoice.userId || currentUserId,
+        tx
+      );
+
+      return invoice;
     });
   }
 

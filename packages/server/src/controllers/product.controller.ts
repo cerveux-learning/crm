@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { ProductService } from '../services/product.service.js';
 import { CreateProductSchema, UpdateProductSchema } from '@crm/shared';
+import type { AuthenticatedRequest } from '../middleware/auth.middleware.js';
 
 export class ProductController {
   static async getAll(req: Request, res: Response): Promise<void> {
@@ -28,10 +29,10 @@ export class ProductController {
     }
   }
 
-  static async create(req: Request, res: Response): Promise<void> {
+  static async create(req: AuthenticatedRequest, res: Response): Promise<void> {
     try {
       const validated = CreateProductSchema.parse(req.body);
-      const product = await ProductService.create(validated);
+      const product = await ProductService.create(validated, req.user?.id);
       res.status(201).json(product);
     } catch (error: any) {
       res.status(400).json({ error: error.errors || error.message });

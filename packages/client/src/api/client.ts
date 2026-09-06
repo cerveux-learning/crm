@@ -9,6 +9,8 @@ import type {
   Product,
   CreateProductInput,
   UpdateProductInput,
+  StockMovement,
+  CreateStockEntryInput,
   SaleOrder,
   CreateSaleOrderInput,
   CreateActivityInput,
@@ -151,6 +153,22 @@ export const api = {
     create: (data: CreateProductInput) => fetchJSON<Product>('/products', { method: 'POST', body: JSON.stringify(data) }),
     update: (id: string, data: UpdateProductInput) => fetchJSON<Product>(`/products/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => fetchJSON<void>(`/products/${id}`, { method: 'DELETE' }),
+  },
+
+  stock: {
+    getMovements: (filters?: { productId?: string; type?: string; startDate?: string; endDate?: string }) => {
+      const params = new URLSearchParams();
+      if (filters?.productId) params.append('productId', filters.productId);
+      if (filters?.type && filters.type !== 'ALL') params.append('type', filters.type);
+      if (filters?.startDate) params.append('startDate', filters.startDate);
+      if (filters?.endDate) params.append('endDate', filters.endDate);
+      return fetchJSON<StockMovement[]>(`/stock/movements?${params.toString()}`);
+    },
+    createEntry: (data: CreateStockEntryInput) =>
+      fetchJSON<{ movement: StockMovement; product: Product }>('/stock/entry', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   },
 
   sales: {

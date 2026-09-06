@@ -6,6 +6,7 @@ import { userRouter } from './routes/user.routes.js';
 import { customerRouter } from './routes/customer.routes.js';
 import { dealRouter } from './routes/deal.routes.js';
 import { productRouter } from './routes/product.routes.js';
+import { stockRouter } from './routes/stock.routes.js';
 import { saleRouter } from './routes/sale.routes.js';
 import { analyticsRouter } from './routes/analytics.routes.js';
 
@@ -21,6 +22,7 @@ app.use('/api/users', userRouter);
 app.use('/api/customers', customerRouter);
 app.use('/api/deals', dealRouter);
 app.use('/api/products', productRouter);
+app.use('/api/stock', stockRouter);
 app.use('/api/sales', saleRouter);
 app.use('/api/analytics', analyticsRouter);
 
