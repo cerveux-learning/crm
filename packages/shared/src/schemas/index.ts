@@ -1,12 +1,39 @@
 import { z } from 'zod';
 
+export const UserRoleEnum = z.enum(['ADMIN', 'SELLER', 'VIEWER']);
 export const CustomerStatusEnum = z.enum(['LEAD', 'PROSPECT', 'CUSTOMER', 'INACTIVE']);
 export const DealStageEnum = z.enum(['LEAD', 'QUALIFIED', 'PROPOSAL', 'NEGOTIATION', 'WON', 'LOST']);
 export const DealPriorityEnum = z.enum(['LOW', 'MEDIUM', 'HIGH']);
 export const ProductCategoryEnum = z.enum(['PRODUCT', 'SERVICE', 'SUBSCRIPTION', 'OTHER']);
+export const StockMovementTypeEnum = z.enum(['IN', 'OUT', 'ADJUSTMENT']);
 export const SaleStatusEnum = z.enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'PAID', 'CANCELLED']);
 export const SaleTypeEnum = z.enum(['QUOTE', 'INVOICE']);
 export const ActivityTypeEnum = z.enum(['CALL', 'MEETING', 'EMAIL', 'NOTE', 'TASK']);
+
+export const LoginSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(1, 'La contraseña es requerida'),
+});
+
+export const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'La contraseña actual es requerida'),
+  newPassword: z.string().min(6, 'La nueva contraseña debe tener al menos 6 caracteres'),
+});
+
+export const CreateUserSchema = z.object({
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  role: UserRoleEnum.default('SELLER'),
+});
+
+export const UpdateUserSchema = z.object({
+  name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres').optional(),
+  email: z.string().email('Email inválido').optional(),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres').optional().nullable(),
+  role: UserRoleEnum.optional(),
+  active: z.boolean().optional(),
+});
 
 export const CreateCustomerSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -25,12 +52,13 @@ export const UpdateCustomerSchema = CreateCustomerSchema.partial();
 export const CreateDealSchema = z.object({
   title: z.string().min(2, 'El título es requerido'),
   value: z.number().min(0, 'El valor debe ser positivo o 0'),
-  currency: z.string().default('USD'),
+  currency: z.string().default('ARS'),
   stage: DealStageEnum.default('LEAD'),
   priority: DealPriorityEnum.default('MEDIUM'),
   probability: z.number().min(0).max(100).default(20),
   expectedCloseDate: z.string().or(z.date()).optional().nullable(),
   customerId: z.string().min(1, 'El cliente es requerido'),
+  userId: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -53,6 +81,12 @@ export const CreateProductSchema = z.object({
 
 export const UpdateProductSchema = CreateProductSchema.partial();
 
+export const CreateStockEntrySchema = z.object({
+  productId: z.string().min(1, 'El ID de producto es requerido'),
+  quantity: z.number().int('La cantidad debe ser un número entero').positive('La cantidad a ingresar debe ser mayor a 0'),
+  notes: z.string().optional().nullable(),
+});
+
 export const CreateSaleOrderItemSchema = z.object({
   productId: z.string().optional().nullable(),
   description: z.string().min(1, 'La descripción del ítem es requerida'),
@@ -66,6 +100,7 @@ export const CreateSaleOrderSchema = z.object({
   type: SaleTypeEnum.default('QUOTE'),
   status: SaleStatusEnum.default('DRAFT'),
   customerId: z.string().min(1, 'El cliente es requerido'),
+  userId: z.string().optional().nullable(),
   issueDate: z.string().or(z.date()).optional(),
   dueDate: z.string().or(z.date()).optional().nullable(),
   taxRate: z.number().min(0).max(1).default(0.21),

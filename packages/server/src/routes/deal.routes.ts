@@ -1,7 +1,11 @@
 import { Router } from 'express';
 import { DealController } from '../controllers/deal.controller.js';
+import { authenticateToken, requireRole } from '../middleware/auth.middleware.js';
 
 export const dealRouter = Router();
+
+dealRouter.use(authenticateToken);
+dealRouter.use(requireRole(['ADMIN', 'SELLER']));
 
 dealRouter.get('/', DealController.getAll);
 dealRouter.get('/:id', DealController.getById);

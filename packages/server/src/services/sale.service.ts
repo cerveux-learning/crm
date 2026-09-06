@@ -1,8 +1,9 @@
 import { prisma } from '../prisma.js';
-import type { CreateSaleOrderInput, UpdateSaleOrderInput } from '@crm/shared';
+import { StockService } from './stock.service.js';
+import type { CreateSaleOrderInput, UpdateSaleOrderInput, AuthUser } from '@crm/shared';
 
 export class SaleService {
-  static async getAll(filters?: { type?: string; status?: string; customerId?: string; search?: string }) {
+  static async getAll(filters?: { type?: string; status?: string; customerId?: string; search?: string; userId?: string }) {
     const where: any = {};
 
     if (filters?.type && filters.type !== 'ALL') {
@@ -15,6 +16,10 @@ export class SaleService {
 
     if (filters?.customerId) {
       where.customerId = filters.customerId;
+    }
+
+    if (filters?.userId) {
+      where.userId = filters.userId;
     }
 
     if (filters?.search) {
@@ -37,6 +42,13 @@ export class SaleService {
             company: true,
           },
         },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         items: {
           include: {
             product: true,
@@ -51,6 +63,13 @@ export class SaleService {
       where: { id },
       include: {
         customer: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         items: {
           include: {
             product: true,
@@ -60,7 +79,21 @@ export class SaleService {
     });
   }
 
-  static async create(data: CreateSaleOrderInput) {
+  static async checkOwnership(id: string, user: AuthUser) {
+    if (user.role === 'ADMIN') return;
+    const sale = await prisma.saleOrder.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+    if (!sale) {
+      throw new Error('Documento de venta no encontrado');
+    }
+    if (sale.userId !== user.id) {
+      throw new Error('No tienes permiso para acceder o modificar esta venta');
+    }
+  }
+
+  static async create(data: CreateSaleOrderInput, currentUserId?: string) {
     // Generate order number if not provided
     const count = await prisma.saleOrder.count({
       where: { type: data.type },
@@ -90,32 +123,54 @@ export class SaleService {
     const taxAmount = (subtotal - discountAmount) * taxRate;
     const total = subtotal - discountAmount + taxAmount;
 
-    return prisma.saleOrder.create({
-      data: {
-        orderNumber,
-        type: data.type,
-        status: data.status || (data.type === 'QUOTE' ? 'DRAFT' : 'SENT'),
-        customerId: data.customerId,
-        issueDate: data.issueDate ? new Date(data.issueDate) : new Date(),
-        dueDate: data.dueDate ? new Date(data.dueDate) : null,
-        subtotal,
-        taxRate,
-        taxAmount,
-        discountAmount,
-        total,
-        notes: data.notes,
-        items: {
-          create: calculatedItems,
-        },
-      },
-      include: {
-        customer: true,
-        items: {
-          include: {
-            product: true,
+    return prisma.$transaction(async (tx) => {
+      const saleOrder = await tx.saleOrder.create({
+        data: {
+          orderNumber,
+          type: data.type,
+          status: data.status || (data.type === 'QUOTE' ? 'DRAFT' : 'SENT'),
+          customerId: data.customerId,
+          userId: data.userId || currentUserId || null,
+          issueDate: data.issueDate ? new Date(data.issueDate) : new Date(),
+          dueDate: data.dueDate ? new Date(data.dueDate) : null,
+          subtotal,
+          taxRate,
+          taxAmount,
+          discountAmount,
+          total,
+          notes: data.notes,
+          items: {
+            create: calculatedItems,
           },
         },
-      },
+        include: {
+          customer: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      });
+
+      // If it's an INVOICE, record outflow of stock associated with the sale
+      if (data.type === 'INVOICE') {
+        await StockService.recordSaleOutflows(
+          saleOrder.id,
+          calculatedItems,
+          saleOrder.userId || currentUserId,
+          tx
+        );
+      }
+
+      return saleOrder;
     });
   }
 
@@ -125,12 +180,19 @@ export class SaleService {
       data: { status },
       include: {
         customer: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
         items: true,
       },
     });
   }
 
-  static async convertQuoteToInvoice(quoteId: string) {
+  static async convertQuoteToInvoice(quoteId: string, currentUserId?: string) {
     const quote = await prisma.saleOrder.findUnique({
       where: { id: quoteId },
       include: { items: true },
@@ -145,44 +207,64 @@ export class SaleService {
     const year = new Date().getFullYear();
     const orderNumber = `FAC-${year}-${String(invoiceCount + 1).padStart(4, '0')}`;
 
-    // Update quote status to ACCEPTED
-    await prisma.saleOrder.update({
-      where: { id: quoteId },
-      data: { status: 'ACCEPTED' },
-    });
+    return prisma.$transaction(async (tx) => {
+      // Update quote status to ACCEPTED
+      await tx.saleOrder.update({
+        where: { id: quoteId },
+        data: { status: 'ACCEPTED' },
+      });
 
-    // Create new Invoice
-    return prisma.saleOrder.create({
-      data: {
-        orderNumber,
-        type: 'INVOICE',
-        status: 'SENT',
-        customerId: quote.customerId,
-        issueDate: new Date(),
-        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        subtotal: quote.subtotal,
-        taxRate: quote.taxRate,
-        taxAmount: quote.taxAmount,
-        discountAmount: quote.discountAmount,
-        total: quote.total,
-        notes: `Factura generada a partir de cotización ${quote.orderNumber}. ${quote.notes || ''}`,
-        items: {
-          create: quote.items.map(item => ({
-            productId: item.productId,
-            description: item.description,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            discount: item.discount,
-            total: item.total,
-          })),
+      // Create new Invoice preserving the seller
+      const invoice = await tx.saleOrder.create({
+        data: {
+          orderNumber,
+          type: 'INVOICE',
+          status: 'SENT',
+          customerId: quote.customerId,
+          userId: quote.userId || currentUserId || null,
+          issueDate: new Date(),
+          dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          subtotal: quote.subtotal,
+          taxRate: quote.taxRate,
+          taxAmount: quote.taxAmount,
+          discountAmount: quote.discountAmount,
+          total: quote.total,
+          notes: `Factura generada a partir de cotización ${quote.orderNumber}. ${quote.notes || ''}`,
+          items: {
+            create: quote.items.map(item => ({
+              productId: item.productId,
+              description: item.description,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              discount: item.discount,
+              total: item.total,
+            })),
+          },
         },
-      },
-      include: {
-        customer: true,
-        items: {
-          include: { product: true },
+        include: {
+          customer: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          items: {
+            include: { product: true },
+          },
         },
-      },
+      });
+
+      // Record stock outflows for products in this invoice
+      await StockService.recordSaleOutflows(
+        invoice.id,
+        quote.items,
+        invoice.userId || currentUserId,
+        tx
+      );
+
+      return invoice;
     });
   }
 

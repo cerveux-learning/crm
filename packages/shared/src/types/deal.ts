@@ -21,6 +21,8 @@ export interface Deal {
   expectedCloseDate?: string | Date | null;
   customerId: string;
   customer?: Customer | null;
+  userId?: string | null;
+  user?: { id: string; name: string; email: string } | null;
   notes?: string | null;
   createdAt: string | Date;
   updatedAt: string | Date;
@@ -35,6 +37,7 @@ export interface CreateDealInput {
   probability?: number;
   expectedCloseDate?: string | Date | null;
   customerId: string;
+  userId?: string | null;
   notes?: string | null;
 }
 

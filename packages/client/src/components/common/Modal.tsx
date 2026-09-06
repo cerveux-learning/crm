@@ -44,36 +44,35 @@ export const Modal: React.FC<ModalProps> = ({
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-50 overflow-y-auto p-2 sm:p-4 flex items-center justify-center">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}
       />
 
-      <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-        <div
-          className={`relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full my-8 ${maxWidthClasses} border border-slate-100 animate-in fade-in zoom-in-95 duration-200`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-slate-100 px-6 py-4">
-            <div>
-              <h3 className="text-lg font-bold text-slate-900">{title}</h3>
-              {description && <p className="text-sm text-slate-500 mt-0.5">{description}</p>}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors"
-            >
-              <X className="h-5 w-5" />
-            </button>
+      <div
+        className={`relative transform overflow-hidden rounded-2xl bg-white text-left shadow-2xl transition-all w-full max-h-[92vh] flex flex-col my-auto sm:my-8 ${maxWidthClasses} border border-slate-100 animate-in fade-in zoom-in-95 duration-200 z-10`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-4 sm:px-6 py-3.5 sm:py-4 shrink-0 bg-white">
+          <div className="min-w-0 pr-2">
+            <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate">{title}</h3>
+            {description && <p className="text-xs sm:text-sm text-slate-500 mt-0.5 line-clamp-1">{description}</p>}
           </div>
-
-          {/* Body */}
-          <div className="px-6 py-5">{children}</div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors shrink-0"
+            title="Cerrar modal"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
+
+        {/* Body */}
+        <div className="px-4 sm:px-6 py-4 sm:py-5 overflow-y-auto flex-1">{children}</div>
       </div>
     </div>
   );

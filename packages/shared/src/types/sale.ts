@@ -30,6 +30,8 @@ export interface SaleOrder {
   status: SaleStatus;
   customerId: string;
   customer?: Customer | null;
+  userId?: string | null;
+  user?: { id: string; name: string; email: string } | null;
   issueDate: string | Date;
   dueDate?: string | Date | null;
   subtotal: number;
@@ -56,6 +58,7 @@ export interface CreateSaleOrderInput {
   type: SaleType;
   status?: SaleStatus;
   customerId: string;
+  userId?: string | null;
   issueDate?: string | Date;
   dueDate?: string | Date | null;
   taxRate?: number;

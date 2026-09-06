@@ -7,6 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id             String          @id @default(uuid())
+  name           String
+  email          String          @unique
+  password       String
+  role           String          @default("SELLER") // ADMIN, SELLER, VIEWER
+  active         Boolean         @default(true)
+  sales          SaleOrder[]
+  deals          Deal[]
+  stockMovements StockMovement[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
 model Customer {
   id         String     @id @default(uuid())
   name       String
@@ -29,7 +43,7 @@ model Deal {
   id                String     @id @default(uuid())
   title             String
   value             Float      @default(0)
-  currency          String     @default("USD")
+  currency          String     @default("ARS")
   stage             String     @default("LEAD") // LEAD, QUALIFIED, PROPOSAL, NEGOTIATION, WON, LOST
   priority          String     @default("MEDIUM") // LOW, MEDIUM, HIGH
   probability       Int        @default(20) // 0 - 100
@@ -37,24 +51,27 @@ model Deal {
   notes             String?
   customerId        String
   customer          Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  userId            String?
+  user              User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   activities        Activity[]
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 }
 
 model Product {
-  id          String          @id @default(uuid())
-  code        String          @unique
-  name        String
-  description String?
-  category    String          @default("PRODUCT") // PRODUCT, SERVICE, SUBSCRIPTION, OTHER
-  unitPrice   Float           @default(0)
-  cost        Float?
-  stock       Int             @default(0)
-  active      Boolean         @default(true)
-  saleItems   SaleOrderItem[]
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  id             String          @id @default(uuid())
+  code           String          @unique
+  name           String
+  description    String?
+  category       String          @default("PRODUCT") // PRODUCT, SERVICE, SUBSCRIPTION, OTHER
+  unitPrice      Float           @default(0)
+  cost           Float?
+  stock          Int             @default(0)
+  active         Boolean         @default(true)
+  saleItems      SaleOrderItem[]
+  stockMovements StockMovement[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
 }
 
 model SaleOrder {
@@ -72,7 +89,10 @@ model SaleOrder {
   notes          String?
   customerId     String
   customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  userId         String?
+  user           User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   items          SaleOrderItem[]
+  stockMovements StockMovement[]
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
 }
@@ -103,4 +123,19 @@ model Activity {
   deal        Deal?     @relation(fields: [dealId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+}
+
+model StockMovement {
+  id          String     @id @default(uuid())
+  productId   String
+  product     Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type        String     // IN (Ingreso), OUT (Salida por Venta), ADJUSTMENT (Ajuste)
+  quantity    Int
+  notes       String?
+  saleOrderId String?
+  saleOrder   SaleOrder? @relation(fields: [saleOrderId], references: [id], onDelete: SetNull)
+  userId      String?
+  user        User?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
 }

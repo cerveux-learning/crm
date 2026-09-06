@@ -239,8 +239,118 @@ export const CustomersPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Customers Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Customers List: Mobile Cards + Desktop Table */}
+      {/* Mobile Card List (< lg) */}
+      <div className="block lg:hidden space-y-3">
+        {filteredCustomers.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 bg-white rounded-2xl border border-slate-100 p-6">
+            No se encontraron clientes que coincidan con la búsqueda.
+          </div>
+        ) : (
+          filteredCustomers.map((customer) => (
+            <div
+              key={customer.id}
+              className="bg-white rounded-2xl p-4 border border-slate-100 shadow-xs space-y-3"
+            >
+              {/* Header: Name + Badge */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-10 w-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-xs shrink-0">
+                    {customer.name
+                      .split(' ')
+                      .map((n) => n[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase()}
+                  </div>
+                  <div className="min-w-0">
+                    <button
+                      onClick={() => handleOpenDetail(customer.id)}
+                      className="font-bold text-slate-900 hover:text-brand-600 text-left text-sm truncate block"
+                    >
+                      {customer.name}
+                    </button>
+                    <p className="text-xs text-slate-400 truncate">{customer.company || 'Particular'}{customer.position ? ` · ${customer.position}` : ''}</p>
+                  </div>
+                </div>
+                <div className="shrink-0">
+                  <Badge variant="customer" value={customer.status} />
+                </div>
+              </div>
+
+              {/* Contact Info */}
+              <div className="grid grid-cols-1 gap-1.5 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl">
+                <a
+                  href={`mailto:${customer.email}`}
+                  className="flex items-center gap-2 text-slate-700 hover:text-brand-600 truncate"
+                >
+                  <Mail className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                  <span className="truncate">{customer.email}</span>
+                </a>
+                {customer.phone && (
+                  <a
+                    href={`tel:${customer.phone}`}
+                    className="flex items-center gap-2 text-slate-700 hover:text-brand-600"
+                  >
+                    <Phone className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                    <span>{customer.phone}</span>
+                  </a>
+                )}
+              </div>
+
+              {/* Tags & Counts */}
+              <div className="flex items-center justify-between gap-2 text-xs pt-1 border-t border-slate-100">
+                <div className="flex flex-wrap gap-1 min-w-0">
+                  {customer.tags && customer.tags.length > 0 ? (
+                    customer.tags.slice(0, 3).map((t, i) => (
+                      <span
+                        key={i}
+                        className="px-2 py-0.5 rounded-md bg-slate-100 text-slate-600 text-[11px] font-medium truncate"
+                      >
+                        {t}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-[11px] text-slate-400">Sin etiquetas</span>
+                  )}
+                </div>
+
+                <span className="text-[11px] font-semibold text-slate-500 shrink-0">
+                  {customer._count?.deals || 0} tratos · {customer._count?.sales || 0} ventas
+                </span>
+              </div>
+
+              {/* Actions Footer */}
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  onClick={() => handleOpenDetail(customer.id)}
+                  className="inline-flex items-center gap-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-indigo-50 text-brand-700 hover:bg-indigo-100 transition-colors"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Ver Ficha
+                </button>
+                <button
+                  onClick={() => handleOpenEditModal(customer)}
+                  className="p-1.5 rounded-lg text-slate-500 hover:bg-slate-100 transition-colors"
+                  title="Editar"
+                >
+                  <Edit2 className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleDeleteCustomer(customer.id)}
+                  className="p-1.5 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
+                  title="Eliminar"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop Table (>= lg) */}
+      <div className="hidden lg:block bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-sm">
             <thead>
